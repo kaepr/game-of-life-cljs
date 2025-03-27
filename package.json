@@ -7,11 +7,11 @@
     "shadow:prod": "bunx shadow-cljs release :app",
     "css:dev": "bunx tailwindcss -i ./src/css/main.css -o ./public/css/main.css --watch",
     "css:prod": "NODE_ENV=production bunx tailwindcss -i ./src/css/main.css -o ./public/css/main.css --minify",
-    "mkdir:prod": "rm -rf prod && mkdir -p prod/css prod/js && cp public/index.html prod/index.html && cp public/js/main.js prod/js/main.js && cp public/css/main.css prod/css/main.css",
-    "release": "shadow-cljs -A:dev release app && npm run styles-release"
+    "mkdir:prod": "rm -rf prod && mkdir -p prod/css prod/js && cp public/index.html prod/index.html && cp public/js/main.js prod/js/main.js && cp public/css/main.css prod/css/main.css"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.0.16",
+    "daisyui": "^5.0.9",
     "concurrently": "^9.1.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

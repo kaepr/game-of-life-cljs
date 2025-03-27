@@ -1,23 +1,22 @@
 # game-of-life-cljs
 
-Repo is based on [harismh/utsb-cljs-starter](https://github.com/harismh/utsb-cljs-starter)
+[Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life) implemented
+in ClojureScript.
 
-## Quick setup
-```shell
-npx create-uix-app@latest my-app # bare-bones project
-npx create-uix-app@latest my-app --re-frame # adds re-frame setup
-npx create-uix-app@latest my-app --fly-io # creates full stack app with Fly.io
-npx create-uix-app@latest MyApp --react-native # setup cljs project in existing React Native project
-npx create-uix-app@latest MyApp --expo # create a new React Native project using Expo
-```
+* Supports multiple tilings.
+* Share the starting state using a link.
+
+Future Scope
+
+- [] Infinitely scrollable
 
 ## Development
 ```shell
-npm i # install NPM deps
-npm run dev # run dev build in watch mode with CLJS REPL
+bun i
+bun dev
 ```
 
-## Production
-```shell
-npm run release # build production bundle
-```
+## References
+
+Repo based on [harismh/utsb-cljs-starter](https://github.com/harismh/utsb-cljs-starter).
+

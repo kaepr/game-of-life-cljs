@@ -1,1 +1,7 @@
-@import "tailwindcss" source("../../src");
+@import "tailwindcss" source(none);
+@source "../app/*.{cljs}";
+@source "../../src/*.{*}/";
+@source "./public/*.{html,js}";
+@plugin "daisyui" {
+      themes: light --default, dark --prefersdark, lofi;
+}
