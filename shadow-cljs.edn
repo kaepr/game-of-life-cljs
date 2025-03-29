@@ -6,12 +6,3 @@
                             :init-fn app.main/init}}
            :devtools {:preloads [uix.preload devtools.preload]}}}}
 
-;; {:dependencies
-;;  [[com.pitch/uix.core "1.1.1"]
-;;   [com.pitch/uix.dom "1.1.1"]]
-;;  :source-paths ["src"]
-;;  :dev-http {3000 "public"}
-;;  :builds
-;;  {:app {:target :browser
-;;         :modules {:main {:init-fn app.main/init}}
-;;         :devtools {:preloads [uix.preload devtools.preload]}}}}
