@@ -2,6 +2,10 @@
 
 (def valid-grid-types #{:square})
 
+(def default-rows 30)
+(def default-cols 30)
+(def default-cell-size 30)
+
 (def grid-configs
   {:square {:name "Square"
             :neighbors [[-1 -1] [-1 0] [-1 1]
