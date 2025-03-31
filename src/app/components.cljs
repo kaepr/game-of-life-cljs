@@ -86,11 +86,15 @@
                                             :max-cols game/default-cols
                                             :cell-size game/default-cell-size
                                             :running false
+                                            :fps 0
+                                            :fps-target 5
                                             :grid-type :square
-                                            :speed 100
                                             :generation 0
                                             :board (game/empty-board game/default-rows game/default-cols)})
-        {:keys [max-rows speed max-cols cell-size running grid-type board]} config
+        {:keys [max-rows speed max-cols
+                cell-size running
+                grid-type board
+                fps-target]} config
         canvas-dimensions (case grid-type
                             :square {:width (* cell-size max-cols)
                                      :height (* cell-size max-rows)}
@@ -99,6 +103,8 @@
                             :hexagon {:width {}
                                       :height ()})
         animation-request-id-ref (uix/use-ref nil)
+        last-update-time-ref (uix/use-ref 0)
+        fps-interval (/ 1000 fps-target)
         canvas-ref (uix/use-ref nil)
         toggle-cell (fn [idx]
                       (set-config
@@ -113,8 +119,14 @@
                                              (assoc :board (game/empty-board (:max-rows c) (:max-cols c)))
                                              (assoc :generation 0)
                                              (assoc :running false)))))
-        start-simulation (fn [])
-        stop-simulation (fn [])
+        start-simulation #(set-config
+                           (fn [c]
+                             (-> c
+                                 (assoc :running true))))
+        stop-simulation #(set-config
+                          (fn [c]
+                            (-> c
+                                (assoc :running false))))
         handle-canvas-click (fn [e]
                               (when-let [canvas (.-current canvas-ref)]
                                 (let [rect (.getBoundingClientRect canvas)
@@ -138,20 +150,37 @@
      [board grid-type max-rows cell-size max-cols])
     (uix/use-effect
      (fn []
-       (let [timer-id (when running
-                        (js/setTimeout
-                         #(set-config (fn [c]
-                                        (-> c
-                                            (update :generation inc)
-                                            (update :board (game/next-gen-board c)))))
-                         speed))]
-         #(when timer-id (js/clearTimeout timer-id)))))
+       (letfn [(animate [timestamp]
+                 (when running
+                   (let [elapsed (- timestamp (.-current last-update-time-ref))]
+                     (when (>= elapsed fps-interval)
+                       (set! (.-current last-update-time-ref)
+                             (- timestamp (mod elapsed fps-interval)))
+                       (let [fps (js/Math.round (/ 1000 elapsed))]
+                         (set-config
+                          (fn [c]
+                            (-> c
+                                (assoc :fps fps)
+                                (update :generation inc)
+                                (assoc :board (game/next-gen-board c)))))))
+                     (let [id (js/requestAnimationFrame animate)]
+                       (set! (.-current animation-request-id-ref) id)))))]
+         (when running
+           (set! (.-current last-update-time-ref) (js/performance.now))
+           (let [id (js/requestAnimationFrame animate)]
+             (set! (.-current animation-request-id-ref) id))))
+       (fn []
+         (when (.-current animation-request-id-ref)
+           (js/cancelAnimationFrame (.-current animation-request-id-ref))
+           (set! (.-current animation-request-id-ref) nil)
+           (set! (.-current last-update-time-ref) 0))))
+     [running fps-interval])
     ($ :div.h-screen.bg-white-50
        ($ header)
        ($ settings {:change-grid-type change-grid-type})
        ($ action-panel {:running running
                         :stop-simulation stop-simulation
-                        :start-simuation start-simulation})
+                        :start-simulation start-simulation})
        ($ board-view {:canvas-ref canvas-ref
                       :width (:width canvas-dimensions)
                       :height (:height canvas-dimensions)
