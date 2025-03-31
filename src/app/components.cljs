@@ -42,17 +42,64 @@
      ($ :a.link.text-lg {:href "https://github.com/kaepr/game-of-life-cljs"} "Github")))
 
 (defui tile-selector [{:keys [running change-grid-type]}]
-  ($ :select.select
-     {:disabled running
-      :default-value "square"
-      :on-change #(change-grid-type (keyword (.. % -target -value)))}
-     ($ :option {:key "square" :value "square"} "Square")
-     ($ :option {:key "triangle" :value "triangle"} "Triangle")
-     ($ :option {:key "hexagon" :value "hexagon"} "Hexagon")))
+  ($ :label.select
+     ($ :span.label.text-black "Shape")
+     ($ :select
+        {:disabled running
+         :default-value "square"
+         :on-change #(change-grid-type (keyword (.. % -target -value)))}
+        ($ :option {:key "square" :value "square"} "Square")
+        ($ :option {:key "triangle" :value "triangle"} "Triangle")
+        ($ :option {:key "hexagon" :value "hexagon"} "Hexagon"))))
 
-(defui settings [{:keys [running change-grid-type] :as props}]
-  ($ :div.px-8.py-4
-     ($ tile-selector props)))
+(defui row-selector [{:keys [max-rows handle-row-change]}]
+  ($ :label.input
+     ($ :span.label.text-black "Rows")
+     ($ :input.validator {:type "number"
+                          :value max-rows
+                          :required true
+                          :min 1
+                          :on-change (fn [e]
+                                       (let [n (js/Number (.. e -target -value))]
+                                         (handle-row-change n)))})))
+
+(defui col-selector [{:keys [max-cols handle-col-change]}]
+  ($ :label.input
+     ($ :span.label.text-black "Columns")
+     ($ :input.validator {:type "number"
+                          :value max-cols
+                          :required true
+                          :min 1
+                          :on-change (fn [e]
+                                       (let [n (js/Number (.. e -target -value))]
+                                         (handle-col-change n)))})))
+
+(defui cell-size-selector [{:keys [cell-size handle-cell-size-change]}]
+  ($ :label.input
+     ($ :span.label.text-black "Cell Size (in px)")
+     ($ :input.validator {:type "number"
+                          :value cell-size
+                          :required true
+                          :min 1
+                          :on-change (fn [e]
+                                       (let [n (js/Number (.. e -target -value))]
+                                         (handle-cell-size-change n)))})))
+
+(defui settings [{:keys [running change-grid-type handle-row-change
+                         max-rows
+                         max-cols
+                         handle-cell-size-change
+                         handle-col-change
+                         cell-size] :as _props}]
+  ($ :div.px-8.py-4.flex.flex-col.gap-2
+     ($ tile-selector {:change-grid-type change-grid-type
+                       :running running})
+     ($ row-selector {:handle-row-change handle-row-change
+                      :max-rows max-rows})
+     ($ col-selector {:handle-col-change handle-col-change
+                      :max-cols max-cols})
+     ($ cell-size-selector {:handle-cell-size-change handle-cell-size-change
+                            :cell-size cell-size})))
 
 (defui action-panel [{:keys [running start-simulation stop-simulation]}]
   ($ :div.px-8.join
@@ -127,6 +174,37 @@
                           (fn [c]
                             (-> c
                                 (assoc :running false))))
+        handle-row-change (fn [rows]
+                            (set-config
+                             (fn [{:keys [max-cols] :as c}]
+                               (-> c
+                                   (assoc :max-rows rows)
+                                   (assoc :running false)
+                                   (assoc :board (game/empty-board rows max-cols))
+                                   (assoc :generation 0)))))
+        handle-col-change (fn [cols]
+                            (set-config
+                             (fn [{:keys [max-rows] :as c}]
+                               (-> c
+                                   (assoc :max-cols cols)
+                                   (assoc :running false)
+                                   (assoc :board (game/empty-board max-rows cols))
+                                   (assoc :generation 0)))))
+        handle-speed-change #()
+        handle-cell-size-change (fn [cell-sz]
+                                  (set-config
+                                   (fn [{:keys [max-rows max-cols] :as c}]
+                                     (-> c
+                                         (assoc :cell-size cell-sz)
+                                         (assoc :running false)
+                                         (assoc :board (game/empty-board max-rows max-cols))
+                                         (assoc :generation 0)))))
+        reset-simulation #(set-config
+                           (fn [c]
+                             (-> c
+                                 (assoc :running false)
+                                 (assoc :board (game/empty-board (:max-rows c) (:max-cols c)))
+                                 (assoc :generation 0))))
         handle-canvas-click (fn [e]
                               (when-let [canvas (.-current canvas-ref)]
                                 (let [rect (.getBoundingClientRect canvas)
@@ -177,7 +255,13 @@
      [running fps-interval])
     ($ :div.h-screen.bg-white-50
        ($ header)
-       ($ settings {:change-grid-type change-grid-type})
+       ($ settings {:change-grid-type change-grid-type
+                    :max-cols max-cols
+                    :max-rows max-rows
+                    :cell-size cell-size
+                    :handle-cell-size-change handle-cell-size-change
+                    :handle-row-change handle-row-change
+                    :handle-col-change handle-col-change})
        ($ action-panel {:running running
                         :stop-simulation stop-simulation
                         :start-simulation start-simulation})
