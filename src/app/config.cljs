@@ -5,8 +5,6 @@
 
 (def config-keys [:board :max-rows :max-cols :cell-size :grid-type])
 
-(def valid-grid-types #{:square :hexagon :triangle})
-
 (def initial-config {:board (game/empty-board settings/default-rows settings/default-cols)
                      :max-rows settings/default-rows
                      :max-cols settings/default-cols
@@ -23,7 +21,7 @@
   (assert (number? max-rows) "Expected rows to be a number.")
   (assert (number? max-cols) "Expected columns to be a number.")
   (assert (number? cell-size) "Expected cell size to be a number.")
-  (assert (contains? valid-grid-types grid-type) "Grid type is not valid.")
+  (assert (contains? settings/valid-grid-types grid-type) "Grid type is not valid.")
   (assert (vector? board) "Expected board to a be vector.")
   (assert (= (count board) (* max-rows max-cols)) "Expected board size to match rows * cols.")
   (assert (every? boolean? board) "Expected board to only contain booleans.")
@@ -38,8 +36,6 @@
       validate-data
       pr-str
       js/encodeURIComponent))
-
-(validate-keys (select-keys initial-config config-keys) config-keys)
 
 (defn decode [encoded-config]
   (-> encoded-config

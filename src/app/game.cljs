@@ -1,10 +1,6 @@
-(ns app.game)
-
-(def valid-grid-types #{:square})
-
-(def default-rows 30)
-(def default-cols 30)
-(def default-cell-size 30)
+(ns app.game
+  (:require
+   [app.settings :as settings]))
 
 (def grid-configs
   {:square {:name "Square"
@@ -46,7 +42,7 @@
          (filter some?))))
 
 (defn count-neighbors [board grid-type [row col] max-rows max-cols]
-  (assert (grid-type valid-grid-types) "Invalid grid type passed.")
+  (assert (grid-type settings/valid-grid-types) "Invalid grid type passed.")
   (let [grid-config (get grid-configs grid-type)
         neighbors (:neighbors grid-config)]
     (condp = grid-type

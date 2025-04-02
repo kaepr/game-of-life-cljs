@@ -3,12 +3,17 @@
 [Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life) implemented
 in ClojureScript.
 
-* Supports multiple tilings.
-* Share the starting state using a link.
+* Share the starting generation using a link.
 
 Future Scope
 
+- [ ] Support multiple tile shapes 
 - [ ] Infinite scroll
+
+## Requirements 
+
+- `npm` or `bun`
+- `ClojureScript`
 
 ## Development
 ```shell

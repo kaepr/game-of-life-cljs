@@ -1,6 +1,7 @@
 (ns app.components
   (:require
    [app.game :as game]
+   [app.settings :as settings]
    [uix.core :as uix :refer [$ defui]]))
 
 (def grid-types
@@ -114,41 +115,67 @@
         {:ref canvas-ref
          :width width
          :height height
+         :style {:width (str width "px")
+                 :height (str height "px")}
          :on-click on-click})))
 
 (defn- clear-canvas [{:keys [canvas]}]
   (let [ctx (.getContext canvas "2d")]
     (set! (.-fillStyle ctx) "white")
-    (.fillRect ctx 0 0 (.-width canvas) (.-height canvas))))
+    (.fillRect ctx 0 0 (.-width canvas) (.-height canvas))
+    (set! (.-strokeStyle ctx) "#ff0000")))
 
-(defn- draw-canvas [{:keys [canvas cell-size board max-cols draw-f]}]
+;; (defn- draw-canvas [{:keys [canvas cell-size board max-cols draw-f]}]
+;;   (let [ctx (.getContext canvas "2d")]
+;;     (js/console.log "changing board size" (count board))
+;;     (dotimes [idx (count board)]
+;;       (let [[r c] (game/index->coordinates idx max-cols)
+;;             alive? (game/alive? (game/get-cell board idx))]
+;;         (draw-f ctx r c cell-size alive?)))))
+
+(defn- draw-canvas [{:keys [canvas cell-size board max-rows max-cols draw-f]}]
   (let [ctx (.getContext canvas "2d")]
-    (dotimes [idx (count board)]
-      (let [[r c] (game/index->coordinates idx max-cols)
-            alive? (game/alive? (game/get-cell board idx))]
-        (draw-f ctx r c cell-size alive?)))))
+    (js/console.log max-rows max-cols (count board))
+    (dotimes [row max-rows]
+      (dotimes [col max-cols]
+        (let [idx (+ (* row max-cols) col)
+              alive? (game/alive? (game/get-cell board idx))]
+          (js/console.log row col)
+          (draw-f ctx row col cell-size alive?))))))
+
+(defn- calc-canvas-dimensions [grid-type cell-size max-rows max-cols]
+  (case grid-type
+    :square {:width (* cell-size max-cols)
+             :height (* cell-size max-rows)}
+    :triangle {:width ()
+               :height ()}
+    :hexagon {:width {}
+              :height ()}))
+
+(defn setup-canvas [canvas {:keys [width height]}]
+  (set! (.-width canvas) width)
+  (set! (.-height canvas) height))
 
 (defui app []
-  (let [[config set-config] (uix/use-state {:max-rows game/default-rows
-                                            :max-cols game/default-cols
-                                            :cell-size game/default-cell-size
+  (let [[config set-config] (uix/use-state {:max-rows settings/default-rows
+                                            :max-cols settings/default-cols
+                                            :cell-size settings/default-cell-size
                                             :running false
                                             :fps 0
                                             :fps-target 5
+                                            :canvas-dimensions (calc-canvas-dimensions
+                                                                :square
+                                                                settings/default-cell-size
+                                                                settings/default-rows
+                                                                settings/default-cols)
                                             :grid-type :square
                                             :generation 0
-                                            :board (game/empty-board game/default-rows game/default-cols)})
+                                            :board (game/empty-board settings/default-rows settings/default-cols)})
         {:keys [max-rows speed max-cols
                 cell-size running
                 grid-type board
+                canvas-dimensions
                 fps-target]} config
-        canvas-dimensions (case grid-type
-                            :square {:width (* cell-size max-cols)
-                                     :height (* cell-size max-rows)}
-                            :triangle {:width ()
-                                       :height ()}
-                            :hexagon {:width {}
-                                      :height ()})
         animation-request-id-ref (uix/use-ref nil)
         last-update-time-ref (uix/use-ref 0)
         fps-interval (/ 1000 fps-target)
@@ -176,17 +203,19 @@
                                 (assoc :running false))))
         handle-row-change (fn [rows]
                             (set-config
-                             (fn [{:keys [max-cols] :as c}]
+                             (fn [{:keys [max-cols grid-type cell-size] :as c}]
                                (-> c
                                    (assoc :max-rows rows)
                                    (assoc :running false)
+                                   (assoc :canvas-dimensions (calc-canvas-dimensions grid-type cell-size rows max-cols))
                                    (assoc :board (game/empty-board rows max-cols))
                                    (assoc :generation 0)))))
         handle-col-change (fn [cols]
                             (set-config
-                             (fn [{:keys [max-rows] :as c}]
+                             (fn [{:keys [max-rows grid-type cell-size] :as c}]
                                (-> c
                                    (assoc :max-cols cols)
+                                   (assoc :canvas-dimensions (calc-canvas-dimensions grid-type cell-size max-rows cols))
                                    (assoc :running false)
                                    (assoc :board (game/empty-board max-rows cols))
                                    (assoc :generation 0)))))
@@ -216,16 +245,26 @@
                                     (toggle-cell idx)))))]
     (uix/use-effect
      (fn []
+       (js/console.log "Should redraw things")
+       (js/console.log "canvas dimensions")
+       (js/console.log canvas-dimensions)
        (when-let [canvas (.-current canvas-ref)]
          (let [draw-f (get grid-type->draw-f grid-type)]
+           (js/console.log "Canvas dimensions:" (.-width canvas) "x" (.-height canvas))
+           (js/console.log "Grid:" max-rows "rows x" max-cols "columns")
+           (js/console.log "Board size:" (count board))
+           (set! (.-width canvas) (:width canvas-dimensions))
+           (set! (.-height canvas) (:height canvas-dimensions))
+           (setup-canvas canvas canvas-dimensions)
            (clear-canvas {:canvas canvas})
            (draw-canvas {:canvas canvas
                          :cell-size cell-size
                          :board board
                          :draw-f draw-f
+                         :max-rows max-rows
                          :max-cols max-cols})))
        (fn []))
-     [board grid-type max-rows cell-size max-cols])
+     [board grid-type max-rows cell-size max-cols canvas-dimensions])
     (uix/use-effect
      (fn []
        (letfn [(animate [timestamp]
