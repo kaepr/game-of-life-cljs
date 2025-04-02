@@ -50,8 +50,8 @@
          :default-value "square"
          :on-change #(change-grid-type (keyword (.. % -target -value)))}
         ($ :option {:key "square" :value "square"} "Square")
-        ($ :option {:key "triangle" :value "triangle"} "Triangle")
-        ($ :option {:key "hexagon" :value "hexagon"} "Hexagon"))))
+        #_($ :option {:key "triangle" :value "triangle"} "Triangle")
+        #_($ :option {:key "hexagon" :value "hexagon"} "Hexagon"))))
 
 (defui row-selector [{:keys [max-rows handle-row-change]}]
   ($ :label.input
@@ -75,6 +75,18 @@
                                        (let [n (js/Number (.. e -target -value))]
                                          (handle-col-change n)))})))
 
+(defui grid-number-selector [{:keys [max-cols handle-col-change handle-row-change]}]
+  ($ :label.input
+     ($ :span.label.text-black "Grids")
+     ($ :input.validator {:type "number"
+                          :value max-cols
+                          :required true
+                          :min 1
+                          :on-change (fn [e]
+                                       (let [n (js/Number (.. e -target -value))]
+                                         (handle-col-change n)
+                                         (handle-row-change n)))})))
+
 (defui cell-size-selector [{:keys [cell-size handle-cell-size-change]}]
   ($ :label.input
      ($ :span.label.text-black "Cell Size (in px)")
@@ -86,19 +98,22 @@
                                        (let [n (js/Number (.. e -target -value))]
                                          (handle-cell-size-change n)))})))
 
-(defui settings [{:keys [running change-grid-type handle-row-change
-                         max-rows
-                         max-cols
-                         handle-cell-size-change
-                         handle-col-change
-                         cell-size] :as _props}]
+(defui settings-panel [{:keys [running change-grid-type handle-row-change
+                               max-rows
+                               max-cols
+                               handle-cell-size-change
+                               handle-col-change
+                               cell-size] :as _props}]
   ($ :div.px-8.py-4.flex.flex-col.gap-2
      ($ tile-selector {:change-grid-type change-grid-type
                        :running running})
-     ($ row-selector {:handle-row-change handle-row-change
-                      :max-rows max-rows})
-     ($ col-selector {:handle-col-change handle-col-change
-                      :max-cols max-cols})
+     ;; ($ row-selector {:handle-row-change handle-row-change
+     ;;                  :max-rows max-rows})
+     ($ grid-number-selector {:max-cols max-cols
+                              :handle-row-change handle-row-change
+                              :handle-col-change handle-col-change})
+     ;; ($ col-selector {:handle-col-change handle-col-change
+     ;;                  :max-cols max-cols})
      ($ cell-size-selector {:handle-cell-size-change handle-cell-size-change
                             :cell-size cell-size})))
 
@@ -125,22 +140,12 @@
     (.fillRect ctx 0 0 (.-width canvas) (.-height canvas))
     (set! (.-strokeStyle ctx) "#ff0000")))
 
-;; (defn- draw-canvas [{:keys [canvas cell-size board max-cols draw-f]}]
-;;   (let [ctx (.getContext canvas "2d")]
-;;     (js/console.log "changing board size" (count board))
-;;     (dotimes [idx (count board)]
-;;       (let [[r c] (game/index->coordinates idx max-cols)
-;;             alive? (game/alive? (game/get-cell board idx))]
-;;         (draw-f ctx r c cell-size alive?)))))
-
 (defn- draw-canvas [{:keys [canvas cell-size board max-rows max-cols draw-f]}]
   (let [ctx (.getContext canvas "2d")]
-    (js/console.log max-rows max-cols (count board))
     (dotimes [row max-rows]
       (dotimes [col max-cols]
         (let [idx (+ (* row max-cols) col)
               alive? (game/alive? (game/get-cell board idx))]
-          (js/console.log row col)
           (draw-f ctx row col cell-size alive?))))))
 
 (defn- calc-canvas-dimensions [grid-type cell-size max-rows max-cols]
@@ -245,14 +250,8 @@
                                     (toggle-cell idx)))))]
     (uix/use-effect
      (fn []
-       (js/console.log "Should redraw things")
-       (js/console.log "canvas dimensions")
-       (js/console.log canvas-dimensions)
        (when-let [canvas (.-current canvas-ref)]
          (let [draw-f (get grid-type->draw-f grid-type)]
-           (js/console.log "Canvas dimensions:" (.-width canvas) "x" (.-height canvas))
-           (js/console.log "Grid:" max-rows "rows x" max-cols "columns")
-           (js/console.log "Board size:" (count board))
            (set! (.-width canvas) (:width canvas-dimensions))
            (set! (.-height canvas) (:height canvas-dimensions))
            (setup-canvas canvas canvas-dimensions)
@@ -294,13 +293,13 @@
      [running fps-interval])
     ($ :div.h-screen.bg-white-50
        ($ header)
-       ($ settings {:change-grid-type change-grid-type
-                    :max-cols max-cols
-                    :max-rows max-rows
-                    :cell-size cell-size
-                    :handle-cell-size-change handle-cell-size-change
-                    :handle-row-change handle-row-change
-                    :handle-col-change handle-col-change})
+       ($ settings-panel {:change-grid-type change-grid-type
+                          :max-cols max-cols
+                          :max-rows max-rows
+                          :cell-size cell-size
+                          :handle-cell-size-change handle-cell-size-change
+                          :handle-row-change handle-row-change
+                          :handle-col-change handle-col-change})
        ($ action-panel {:running running
                         :stop-simulation stop-simulation
                         :start-simulation start-simulation})
