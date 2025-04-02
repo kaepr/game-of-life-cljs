@@ -197,10 +197,10 @@
                                             :fps 0
                                             :fps-target 5
                                             :canvas-dimensions (calc-canvas-dimensions
-                                                                :square
-                                                                settings/default-cell-size
-                                                                settings/default-rows
-                                                                settings/default-cols)
+                                                                grid-type
+                                                                cell-size
+                                                                max-rows
+                                                                max-cols)
                                             :grid-type grid-type
                                             :generation 0
                                             :board board})
