@@ -18,6 +18,9 @@ jobs:
         with:
           cli: 1.10.1.693              # Clojure CLI based on tools.deps
 
+      - name: Install Clojure dependencies
+        run: clojure -M:deps
+
       - name: Install dependencies
         run: bun i
 
