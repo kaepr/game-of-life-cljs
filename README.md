@@ -26,7 +26,8 @@ This will start up a `nREPL` server locally.
 ## Production 
 
 ``` shell
-
+bun prod
+bunx serve prod
 ```
 
 ## References
