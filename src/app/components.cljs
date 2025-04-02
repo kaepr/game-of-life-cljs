@@ -2,7 +2,9 @@
   (:require
    [app.game :as game]
    [app.settings :as settings]
-   [uix.core :as uix :refer [$ defui]]))
+   [app.config :as app-config]
+   [uix.core :as uix :refer [$ defui]]
+   [app.util :as util]))
 
 (def grid-types
   {:square {:name "Square Tiles"
@@ -117,15 +119,28 @@
      ($ cell-size-selector {:handle-cell-size-change handle-cell-size-change
                             :cell-size cell-size})))
 
-(defui action-panel [{:keys [running start-simulation stop-simulation]}]
-  ($ :div.px-8.join
-     ($ :button.btn.join-item {:disabled running
-                               :on-click start-simulation} "Start")
-     ($ :button.btn.join-item {:disabled (not running)
-                               :on-click stop-simulation} "Stop")))
+(defui action-panel [{:keys [running start-simulation stop-simulation reset-simulation]}]
+  ($ :div.px-8.flex.flex-col.gap-2
+     ($ :button.btn.join-item.max-w-md.block {:disabled running
+                                              :on-click start-simulation} "Start")
+     ($ :button.btn.join-item.max-w-md.block {:disabled (not running)
+                                              :on-click stop-simulation} "Stop")
+     ($ :button.btn.join-item.max-w-md.block {:on-click reset-simulation} "Reset")))
 
-(defui board-view [{:keys [width height on-click canvas-ref]}]
+(defui share-panel [{:keys [] :as c}]
+  (let [seed (app-config/encode c)
+        url (util/get-base-url)
+        seed-url (str url "?seed=" seed)]
+    ($ :div.px-8.flex.flex-col.gap-2.pb-2
+       ($ :button.btn.max-w-md.block
+          {:on-click (fn [_] (util/copy-to-clipboard! seed-url #(js/console.log "Copied to clipboard")))}
+          "Share (copies link to clipboard)"))))
+
+(defui board-view [{:keys [width height on-click canvas-ref generation]}]
   ($ :div.w-full.max-w-full.py-4.px-8.overflow-auto
+     ($ :div.stats
+        ($ :div.stat
+           ($ :div.stat-value.text-lg (str "Generation #" generation))))
      ($ :canvas.block.cursor-pointer.mx-auto.border
         {:ref canvas-ref
          :width width
@@ -161,10 +176,23 @@
   (set! (.-width canvas) width)
   (set! (.-height canvas) height))
 
+(defn- parse-starting-config-from-url []
+  (if-let [seed (util/parse-seed-from-url js/window.location)]
+    (try
+      (app-config/decode (:seed seed))
+      (catch :default _
+        (set! (.-location js/window) (util/get-base-url))))
+    app-config/initial-config))
+
 (defui app []
-  (let [[config set-config] (uix/use-state {:max-rows settings/default-rows
-                                            :max-cols settings/default-cols
-                                            :cell-size settings/default-cell-size
+  (let [{:keys [max-rows
+                max-cols
+                board
+                grid-type
+                cell-size]} (parse-starting-config-from-url)
+        [config set-config] (uix/use-state {:max-rows max-rows
+                                            :max-cols max-cols
+                                            :cell-size cell-size
                                             :running false
                                             :fps 0
                                             :fps-target 5
@@ -173,12 +201,13 @@
                                                                 settings/default-cell-size
                                                                 settings/default-rows
                                                                 settings/default-cols)
-                                            :grid-type :square
+                                            :grid-type grid-type
                                             :generation 0
-                                            :board (game/empty-board settings/default-rows settings/default-cols)})
-        {:keys [max-rows speed max-cols
+                                            :board board})
+        {:keys [max-rows max-cols
                 cell-size running
                 grid-type board
+                generation
                 canvas-dimensions
                 fps-target]} config
         animation-request-id-ref (uix/use-ref nil)
@@ -300,10 +329,13 @@
                           :handle-cell-size-change handle-cell-size-change
                           :handle-row-change handle-row-change
                           :handle-col-change handle-col-change})
+       ($ share-panel config)
        ($ action-panel {:running running
+                        :reset-simulation reset-simulation
                         :stop-simulation stop-simulation
                         :start-simulation start-simulation})
        ($ board-view {:canvas-ref canvas-ref
+                      :generation generation
                       :width (:width canvas-dimensions)
                       :height (:height canvas-dimensions)
                       :on-click handle-canvas-click}))))
