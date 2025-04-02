@@ -15,7 +15,7 @@ Future Scope
 ## Requirements 
 
 - `npm` or `bun`
-- `ClojureScript`
+- `clojure`
 
 ## Development
 ```shell

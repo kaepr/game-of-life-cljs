@@ -256,10 +256,11 @@
         handle-speed-change #()
         handle-cell-size-change (fn [cell-sz]
                                   (set-config
-                                   (fn [{:keys [max-rows max-cols] :as c}]
+                                   (fn [{:keys [max-rows max-cols grid-type] :as c}]
                                      (-> c
                                          (assoc :cell-size cell-sz)
                                          (assoc :running false)
+                                         (assoc :canvas-dimensions (calc-canvas-dimensions grid-type cell-sz max-rows max-cols))
                                          (assoc :board (game/empty-board max-rows max-cols))
                                          (assoc :generation 0)))))
         reset-simulation #(set-config
